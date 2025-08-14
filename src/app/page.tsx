@@ -159,16 +159,25 @@ export default function ClipStampPage() {
       title: 'Generating Clips',
       description: `Generating ${numberOfClips} clip(s). This may take a few minutes.`,
     });
+
     try {
       const clipDuration = (timeRange[1] - timeRange[0]) / numberOfClips;
-      const promises = Array.from({ length: numberOfClips }, (_, i) => {
+      const newClips: string[] = [];
+      for (let i = 0; i < numberOfClips; i++) {
         const prompt = `${clipPrompt} (Part ${i + 1} of ${numberOfClips})`;
-        return generateVideo({ videoUrl, prompt, durationSeconds: clipDuration });
-      });
+        toast({
+          title: `Generating Clip ${i + 1} of ${numberOfClips}`,
+          description: 'This may take a moment...',
+        });
+        const result = await generateVideo({
+          videoUrl,
+          prompt,
+          durationSeconds: clipDuration,
+        });
+        newClips.push(result.video);
+        setGeneratedClips([...newClips]);
+      }
 
-      const results = await Promise.all(promises);
-      setGeneratedClips(results.map(r => r.video));
-      
       toast({
         title: 'Success',
         description: `${numberOfClips} clip(s) generated successfully!`,
@@ -178,12 +187,13 @@ export default function ClipStampPage() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to generate clips.',
+        description: 'Failed to generate clips. You may have hit a rate limit. Please try again in a moment.',
       });
     } finally {
       setIsGeneratingClips(false);
     }
   }, [videoId, videoUrl, timeRange, numberOfClips, clipPrompt, toast]);
+
 
   const embedUrl = useMemo(() => {
     if (!videoId) return null;
