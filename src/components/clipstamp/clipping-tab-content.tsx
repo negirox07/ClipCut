@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Download, Scissors, Link2, Play } from 'lucide-react';
+import { Download, Scissors, Link2, Play, Loader2, Video } from 'lucide-react';
 import { formatTime } from '@/lib/utils';
+import { Textarea } from '../ui/textarea';
 
 const ClippingTabContent = () => {
   const {
@@ -21,6 +22,11 @@ const ClippingTabContent = () => {
     handleExportJson,
     handleExportClip,
     triggerPreview,
+    numberOfClips,
+    setNumberOfClips,
+    isGeneratingClips,
+    clipPrompt,
+    setClipPrompt
   } = useClipstamp();
 
   return (
@@ -77,13 +83,54 @@ const ClippingTabContent = () => {
 
       <Card>
         <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Video className="w-5 h-5 text-primary" />
+            Clip Generation
+          </CardTitle>
+          <CardDescription>
+            Generate one or more clips from the selected time range.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="clip-prompt">Clip Generation Prompt</Label>
+            <Textarea
+              id="clip-prompt"
+              placeholder="e.g., An exciting moment from the video."
+              value={clipPrompt}
+              onChange={(e) => setClipPrompt(e.target.value)}
+              disabled={!videoId || isGeneratingClips}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="num-clips">Number of clips</Label>
+            <Input
+              id="num-clips"
+              type="number"
+              min="1"
+              max="10"
+              value={numberOfClips}
+              onChange={(e) => setNumberOfClips(parseInt(e.target.value, 10))}
+              className="w-24"
+              disabled={!videoId || isGeneratingClips}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Export</CardTitle>
           <CardDescription>Download your clipped video or project data.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button onClick={handleExportClip} disabled={!videoId}>
-            <Scissors className="mr-2 h-4 w-4" />
-            Export Clip
+          <Button onClick={handleExportClip} disabled={!videoId || isGeneratingClips}>
+            {isGeneratingClips ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Scissors className="mr-2 h-4 w-4" />
+            )}
+            Export Clip{numberOfClips > 1 ? 's' : ''}
           </Button>
           <Button variant="outline" onClick={handleExportJson} disabled={!videoId}>
             <Download className="mr-2 h-4 w-4" />

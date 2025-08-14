@@ -9,6 +9,7 @@ import GeneratedContent from '@/components/clipstamp/generated-content';
 import { useToast } from "@/hooks/use-toast";
 import { generateCaption } from '@/ai/flows/generate-caption';
 import { generateVoiceover } from '@/ai/flows/generate-voiceover';
+import { generateVideo } from '@/ai/flows/generate-video-flow';
 import { getYoutubeVideoId } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -28,6 +29,11 @@ export default function ClipStampPage() {
   const [generatedVoiceover, setGeneratedVoiceover] = useState<string | null>(null);
   const [isGeneratingVoiceover, setIsGeneratingVoiceover] = useState(false);
   const [previewTrigger, setPreviewTrigger] = useState(0);
+  const [numberOfClips, setNumberOfClips] = useState(1);
+  const [isGeneratingClips, setIsGeneratingClips] = useState(false);
+  const [generatedClips, setGeneratedClips] = useState<string[]>([]);
+  const [clipPrompt, setClipPrompt] = useState('A short, engaging clip from the video.');
+
 
   const { toast } = useToast();
 
@@ -138,12 +144,46 @@ export default function ClipStampPage() {
     });
   };
 
-  const handleExportClip = () => {
+  const handleExportClip = useCallback(async () => {
+    if (!videoId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please provide a video URL.',
+      });
+      return;
+    }
+    setIsGeneratingClips(true);
+    setGeneratedClips([]);
     toast({
-        title: "Coming Soon!",
-        description: "Video clip export functionality is under development."
+      title: 'Generating Clips',
+      description: `Generating ${numberOfClips} clip(s). This may take a few minutes.`,
     });
-  }
+    try {
+      const clipDuration = (timeRange[1] - timeRange[0]) / numberOfClips;
+      const promises = Array.from({ length: numberOfClips }, (_, i) => {
+        const prompt = `${clipPrompt} (Part ${i + 1} of ${numberOfClips})`;
+        return generateVideo({ videoUrl, prompt, durationSeconds: clipDuration });
+      });
+
+      const results = await Promise.all(promises);
+      setGeneratedClips(results.map(r => r.video));
+      
+      toast({
+        title: 'Success',
+        description: `${numberOfClips} clip(s) generated successfully!`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to generate clips.',
+      });
+    } finally {
+      setIsGeneratingClips(false);
+    }
+  }, [videoId, videoUrl, timeRange, numberOfClips, clipPrompt, toast]);
 
   const embedUrl = useMemo(() => {
     if (!videoId) return null;
@@ -180,7 +220,13 @@ export default function ClipStampPage() {
     handleExportJson,
     handleExportClip,
     embedUrl,
-    triggerPreview: () => setPreviewTrigger(v => v + 1)
+    triggerPreview: () => setPreviewTrigger(v => v + 1),
+    numberOfClips,
+    setNumberOfClips,
+    isGeneratingClips,
+    generatedClips,
+    clipPrompt,
+    setClipPrompt,
   };
 
   return (
