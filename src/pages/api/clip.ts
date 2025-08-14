@@ -7,10 +7,7 @@ import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import ytdl from 'yt-dlp-exec';
 import ffmpeg from 'fluent-ffmpeg';
-const ffmpegStatic = require('ffmpeg-static');
 import { formidable } from 'formidable';
-
-ffmpeg.setFfmpegPath(ffmpegStatic!);
 
 export const config = {
   api: {
@@ -37,8 +34,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-
+  
   try {
+    const ffmpegStatic = require('ffmpeg-static');
+    ffmpeg.setFfmpegPath(ffmpegStatic!);
+
     const { fields, files } = await parseForm(req);
     
     const videoUrl = Array.isArray(fields.videoUrl) ? fields.videoUrl[0] : fields.videoUrl;
