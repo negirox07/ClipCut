@@ -84,7 +84,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .outputOptions('-b:a 128k');
             
             const videoFilters: string[] = [];
-            const inputs: {input: string, map?: string}[] = [];
             
             if (logoPath) {
                  command.input(logoPath);
@@ -92,20 +91,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             if (credits) {
-                 const currentVideoInput = videoFilters.length > 0 ? `[vid_out_${i}]` : '[0:v]';
-                 const nextVideoOutput = videoFilters.length > 0 ? '' : `[vid_with_credits_${i}]`;
-                 
+                 const currentVideoInput = videoFilters.length > 0 ? `[vid_out]` : '[0:v]';
                  let filterString = `${currentVideoInput}drawtext=text='${credits.replace(/'/g, `''`)}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=h-th-10`;
 
                  if(videoFilters.length > 0) {
-                    videoFilters[videoFilters.length -1] += `[tmp]; [tmp]${filterString.substring(4)}`;
+                    // chain the filters
+                    videoFilters[videoFilters.length - 1] += `[tmp]; [tmp]${filterString.substring(currentVideoInput.length)}`;
                  } else {
-                    videoFilters.push(filterString + nextVideoOutput);
+                    videoFilters.push(filterString);
                  }
             }
             
             if(videoFilters.length > 0) {
-                command.complexFilter(videoFilters.join(';'));
+                // If there's only one filter and it doesn't have an output sink, add one.
+                const lastFilter = videoFilters[videoFilters.length - 1];
+                if (!lastFilter.match(/\[[^\]]+\]$/)) {
+                    videoFilters[videoFilters.length - 1] = lastFilter + '[vid_out]';
+                }
+                command.complexFilter(videoFilters.join(';'), videoFilters.length > 1 ? 'vid_out' : 'vid_out');
             }
 
             command
