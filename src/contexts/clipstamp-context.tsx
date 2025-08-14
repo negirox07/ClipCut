@@ -36,8 +36,6 @@ export interface ClipstampContextType {
   setNumberOfClips: Dispatch<SetStateAction<number>>;
   isGeneratingClips: boolean;
   generatedClips: string[];
-  clipPrompt: string;
-  setClipPrompt: Dispatch<SetStateAction<string>>;
 }
 
 export const ClipstampContext = createContext<ClipstampContextType | null>(null);

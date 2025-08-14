@@ -25,8 +25,6 @@ const ClippingTabContent = () => {
     numberOfClips,
     setNumberOfClips,
     isGeneratingClips,
-    clipPrompt,
-    setClipPrompt
   } = useClipstamp();
 
   return (
@@ -92,17 +90,7 @@ const ClippingTabContent = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="clip-prompt">Clip Generation Prompt</Label>
-            <Textarea
-              id="clip-prompt"
-              placeholder="e.g., An exciting moment from the video."
-              value={clipPrompt}
-              onChange={(e) => setClipPrompt(e.target.value)}
-              disabled={!videoId || isGeneratingClips}
-            />
-          </div>
-          <div className="space-y-2">
+           <div className="space-y-2">
             <Label htmlFor="num-clips">Number of clips</Label>
             <Input
               id="num-clips"

@@ -9,7 +9,6 @@ import GeneratedContent from '@/components/clipstamp/generated-content';
 import { useToast } from "@/hooks/use-toast";
 import { generateCaption } from '@/ai/flows/generate-caption';
 import { generateVoiceover } from '@/ai/flows/generate-voiceover';
-import { generateVideo } from '@/ai/flows/generate-video-flow';
 import { getYoutubeVideoId } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -145,54 +144,62 @@ export default function ClipStampPage() {
   };
 
   const handleExportClip = useCallback(async () => {
-    if (!videoId) {
+    if (!videoUrl) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Please provide a video URL.',
+        description: 'Please provide a valid YouTube URL.',
       });
       return;
     }
+
     setIsGeneratingClips(true);
     setGeneratedClips([]);
     toast({
-      title: 'Generating Clips',
-      description: `Generating ${numberOfClips} clip(s). This may take a few minutes.`,
+      title: 'Generating Clip(s)',
+      description: 'Your clip(s) are being generated. This might take a few moments.',
     });
 
     try {
-      const clipDuration = (timeRange[1] - timeRange[0]) / numberOfClips;
-      const newClips: string[] = [];
-      for (let i = 0; i < numberOfClips; i++) {
-        const prompt = `${clipPrompt} (Part ${i + 1} of ${numberOfClips})`;
-        toast({
-          title: `Generating Clip ${i + 1} of ${numberOfClips}`,
-          description: 'This may take a moment...',
-        });
-        const result = await generateVideo({
-          videoUrl,
-          prompt,
-          durationSeconds: clipDuration,
-        });
-        newClips.push(result.video);
-        setGeneratedClips([...newClips]);
+      const formData = new FormData();
+      formData.append('videoUrl', videoUrl);
+      formData.append('startTime', String(timeRange[0]));
+      formData.append('endTime', String(timeRange[1]));
+      formData.append('numberOfClips', String(numberOfClips));
+      if (logo) {
+        formData.append('logo', logo);
+      }
+      formData.append('credits', credits);
+
+      const response = await fetch('/api/clip', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate clips');
       }
 
+      const { clips } = await response.json();
+      setGeneratedClips(clips);
+
       toast({
-        title: 'Success',
-        description: `${numberOfClips} clip(s) generated successfully!`,
+        title: 'Success!',
+        description: 'Your clip(s) have been generated.',
       });
-    } catch (error) {
+
+    } catch (error: any) {
       console.error(error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to generate clips. You may have hit a rate limit. Please try again in a moment.',
+        title: 'Error Generating Clips',
+        description: error.message || 'An unknown error occurred.',
       });
     } finally {
       setIsGeneratingClips(false);
     }
-  }, [videoId, videoUrl, timeRange, numberOfClips, clipPrompt, toast]);
+  }, [videoUrl, timeRange, numberOfClips, logo, credits, toast]);
 
 
   const embedUrl = useMemo(() => {
